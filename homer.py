@@ -197,7 +197,8 @@ class Homer(commands.Bot):
         vc = discord.utils.find(lambda ch: ch.channel.id == channel.id, self.voice_clients)
 
         if vc is not None:
-            filename = 'D:\\Python\\workspace\\homer-discord-bot\\resources'
+            dirname = os.path.dirname(__file__)
+            filename = os.path.join(dirname, 'resources/HIS_NAME_IS_JOHN_CENA.mp3')
 
             player = await play_file(filename)
             vc.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
