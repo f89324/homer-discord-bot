@@ -222,4 +222,11 @@ if __name__ == '__main__':
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
 
+    # According to the discord.py docs (https://discordpy.readthedocs.io/en/latest/api.html#discord.opus.load_opus)
+    # you should not need it on a windows environnement,
+    # which is why it worked on local machine and not on heroku (which is unix based).
+    # 'nt' is the value for windows
+    if os.name == 'nt' and discord.opus.is_loaded():
+        discord.opus.load_opus('libopus.so')
+
     homer = Homer(__TOKEN, __AUTHORIZED_GUILD_ID)
