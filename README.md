@@ -1,10 +1,13 @@
 # Homer-bot
 
 
+![homer-logo](https://github.com/f89324/homer-discord-bot/blob/develop/resources/homer.png)   
+Exclusive bot for Donut Hole server.
+
 <a name="requirements"></a>
 ### Requirements
 *  python3
-*  all requirements from requirements.txt
+*  all dependencies from `requirements.txt`
 *  ffmpeg
 
 
