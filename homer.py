@@ -124,8 +124,9 @@ class TextCommands(commands.Cog):
             ctx.voice_client.stop()
 
     @commands.command(name='volume',
+                      aliases=['vol'],
                       case_insensitive=True,
-                      help='Changes the bot\'s volume.')
+                      help='Changes the bot\'s volume. Aliases=[vol].')
     async def volume(self, ctx, vol: int):
         """
         Changes the bot's volume.
