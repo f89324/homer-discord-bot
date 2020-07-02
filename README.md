@@ -38,3 +38,4 @@ Exclusive bot for Donut Hole server.
 ### Environment Variables
 * `DISCORD_TOKEN`(Required) - The Discord Bot token
 * `AUTHORIZED_GUILD_ID`(Optional) - list of authorized guild ids 
+* `DEBUG_ENABLED`(Optional) - flag for debug logging

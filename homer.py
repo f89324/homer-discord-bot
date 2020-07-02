@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import functools
 import os
 import traceback
 
@@ -28,6 +29,16 @@ YTDL_OPTIONS = {
     'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
 }
 
+
+def debug(fn):
+    @functools.wraps(fn)
+    async def wrapped(*args, **kwargs):
+        if __DEBUG_ENABLED is True:
+            print(f'FUN [{fn.__name__}] {args} {kwargs}')
+
+        return await fn(*args, **kwargs)
+
+    return wrapped
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -61,6 +72,7 @@ class TextCommands(commands.Cog):
                       aliases=['summon'],
                       case_insensitive=True,
                       help='Joins the voice channel you\'re in.  Aliases=[summon].')
+    @debug
     async def join(self, ctx, *, channel: discord.VoiceChannel = None):
         """
         Joins a voice channel.
@@ -80,6 +92,7 @@ class TextCommands(commands.Cog):
     @commands.command(name='leave',
                       case_insensitive=True,
                       help='Leaves a voice channel.')
+    @debug
     async def leave(self, ctx):
         """
         Leaves a voice channel.
@@ -94,7 +107,8 @@ class TextCommands(commands.Cog):
     @commands.command(name='play',
                       case_insensitive=True,
                       help='Plays audio from a url (doesn\'t pre-download).')
-    async def stream(self, ctx, *, url):
+    @debug
+    async def play(self, ctx, *, url):
         """
         Plays audio from a url (doesn't pre-download).
         """
@@ -114,6 +128,7 @@ class TextCommands(commands.Cog):
                       aliases=['mute', 'shutup'],
                       case_insensitive=True,
                       help='Stops playing to voice. Aliases=[mute, shutup].')
+    @debug
     async def stop(self, ctx):
         """
         Stops playing to voice.
@@ -127,6 +142,7 @@ class TextCommands(commands.Cog):
                       aliases=['vol'],
                       case_insensitive=True,
                       help='Changes the bot\'s volume. Aliases=[vol].')
+    @debug
     async def volume(self, ctx, vol: int = None):
         """
         Changes the bot's volume.
@@ -135,12 +151,13 @@ class TextCommands(commands.Cog):
             return await ctx.send('```I\'m not connected to a voice channel.```')
 
         if vol is None:
-            return await ctx.send(f'```My volume is [{ctx.voice_client.source.volume}] now.```')
+            return await ctx.send(f'```My volume is [{ctx.voice_client.source.volume * 100}] now.```')
 
         ctx.voice_client.source.volume = vol / 100
         await ctx.send(f'```Changed my volume to {vol}```')
 
 
+@debug
 async def play_file(filename):
     ffmpeg_options = {
         'options': '-vn',
@@ -164,6 +181,7 @@ class Homer(commands.Bot):
 
         self.run(token)
 
+    @debug
     async def on_ready(self):
         await self.__log_all_connected_guilds()
 
@@ -175,6 +193,7 @@ class Homer(commands.Bot):
         traceback.print_exception(type(error), error, error.__traceback__)
         await ctx.send(f'```{error}```')
 
+    @debug
     async def on_voice_state_update(self, member, before, after):
         if member.id == self.user.id:
             return
@@ -229,6 +248,7 @@ if __name__ == '__main__':
     load_dotenv()
     __TOKEN = os.getenv('DISCORD_TOKEN')
     __AUTHORIZED_GUILD_ID = os.getenv('AUTHORIZED_GUILD_ID')
+    __DEBUG_ENABLED = os.getenv('DEBUG_ENABLED')
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
 
