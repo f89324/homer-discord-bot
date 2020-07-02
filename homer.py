@@ -102,7 +102,7 @@ class TextCommands(commands.Cog):
         if ctx.voice_client is None:
             return await ctx.send('```I\'m not connected to a voice channel.```')
 
-        ctx.voice_client.disconnect()
+        await ctx.voice_client.disconnect()
 
     @commands.command(name='play',
                       case_insensitive=True,
