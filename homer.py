@@ -134,6 +134,9 @@ class TextCommands(commands.Cog):
         if ctx.voice_client is None:
             return await ctx.send('```I\'m not connected to a voice channel.```')
 
+        if vol is None:
+            return await ctx.send(f'```My volume is [{ctx.voice_client.source.volume}] now.```')
+
         ctx.voice_client.source.volume = vol / 100
         await ctx.send(f'```Changed my volume to {vol}```')
 
