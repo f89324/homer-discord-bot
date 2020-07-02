@@ -127,7 +127,7 @@ class TextCommands(commands.Cog):
                       aliases=['vol'],
                       case_insensitive=True,
                       help='Changes the bot\'s volume. Aliases=[vol].')
-    async def volume(self, ctx, vol: int):
+    async def volume(self, ctx, vol: int = None):
         """
         Changes the bot's volume.
         """
