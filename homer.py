@@ -195,15 +195,23 @@ class Homer(commands.Bot):
 
     @debug
     async def on_voice_state_update(self, member, before, after):
+
+        # Don't react to bot own actions
         if member.id == self.user.id:
             return
 
+        # Don't react to actions like 'self mute'
         if before.channel is not None \
                 and after.channel is not None \
                 and after.channel.id == before.channel.id:
             return
 
-        if after.channel is not None and await self.__is_homer_in_this_channel(after.channel):
+        if after.channel is not None \
+                and not await self.__is_homer_in_this_channel(after.channel) \
+                and not self.voice_clients:
+            print(f'Joins {member.name} in the voice channel #{after.channel.name}')
+            await after.channel.connect()
+        elif after.channel is not None and await self.__is_homer_in_this_channel(after.channel):
             print(f'{member.name}(id: {member.id}) join me in #{after.channel.name}!')
             await self.__play_intro(after.channel, member.id)
         elif before.channel is not None and await self.__is_homer_in_this_channel(before.channel):
