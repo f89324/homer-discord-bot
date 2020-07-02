@@ -75,6 +75,8 @@ class TextCommands(commands.Cog):
             except AttributeError:
                 return await ctx.send('```No channel to join. Please either specify a valid channel or join one.```')
 
+        print(f'Joins the voice channel #{channel.name}')
+
         await channel.connect()
 
     @commands.command(name='leave',
@@ -182,7 +184,7 @@ class Homer(commands.Bot):
             return
 
         if after.channel is not None and await self.__is_homer_in_this_channel(after.channel):
-            print(f'{member.name} join me in #{after.channel}!')
+            print(f'{member.name}(id: {member.id}) join me in #{after.channel.name}!')
             await self.__play_intro(after.channel)
         elif before.channel is not None and await self.__is_homer_in_this_channel(before.channel):
             await self.__leave_voice_if_alone(before.channel)
@@ -190,8 +192,8 @@ class Homer(commands.Bot):
     async def __log_all_connected_guilds(self):
         print(f'{self.user} is connected to the following guilds:')
         for guild in self.guilds:
-            print(f'- {guild.name}(id: {guild.id})\n')
-        print(f'bot ID: {self.user.id}')
+            print(f'- {guild.name}(id: {guild.id})')
+        print(f'homer bot: {self.user.name}(id: {self.user.id})')
         print('_____________________________________________')
 
     async def __play_intro(self, channel):
@@ -209,7 +211,7 @@ class Homer(commands.Bot):
 
     async def __leave_voice_if_alone(self, channel):
         if len(channel.members) == 1:
-            print(f'I\'m alone. I leave #{channel} too.')
+            print(f'I\'m alone. I leave #{channel.name} too.')
 
             vc = discord.utils.find(lambda ch: ch.channel.id == channel.id, self.voice_clients)
             if vc is not None:
