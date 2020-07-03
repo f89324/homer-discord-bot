@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import datetime
 import functools
 import os
 import traceback
@@ -46,9 +47,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
         super().__init__(source, volume)
 
         self.data = data
-
         self.title = data.get('title')
         self.url = data.get('url')
+        self.duration = data.get('duration')  # Length of the video in seconds
 
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=False):
@@ -120,10 +121,11 @@ class TextCommands(commands.Cog):
                 return await ctx.send("```You are not connected to a voice channel.```")
 
         async with ctx.typing():
-            player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
-            ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
+            audio_from_url = await YTDLSource.from_url(url, loop=self.bot.loop)
+            ctx.voice_client.play(audio_from_url, after=lambda e: print(f'Player error: {e}') if e else None)
 
-        await ctx.send(f'```Now playing: \'{player.title}\'```')
+        await ctx.send(f'''```Now Playing: \'{audio_from_url.title}\'
+duration: [{datetime.timedelta(seconds=audio_from_url.duration)}]```''')
 
     @commands.command(name='stop',
                       aliases=['mute', 'shutup'],
@@ -191,6 +193,21 @@ class TextCommands(commands.Cog):
 
         ctx.voice_client.resume()
         await ctx.send(f'``` Resume \'{ctx.voice_client.source.title}\'```')
+
+    @commands.command(name='now_playing',
+                      aliases=['np', 'current', 'current-song', 'playing'],
+                      help='Display information about the currently playing song. Aliases=[np, current, current-song, playing].')
+    @debug_log
+    async def now_playing(self, ctx):
+        """
+        Display information about the currently playing song.
+        """
+        if ctx.voice_client is None or not ctx.voice_client.is_connected():
+            await ctx.send('```I\'m not connected to a voice channel.```')
+            return
+
+        await ctx.send(f'''```Now Playing: \'{ctx.voice_client.source.title}\'
+duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```''')
 
 
 @debug_log

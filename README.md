@@ -34,6 +34,7 @@ Exclusive bot for Donut Hole server.
 * `volume` - Changes the bot's volume.
 * `pause` - Pauses the audio playing.
 * `resume` - Resumes the audio playing.
+* `now_playing` - Display information about the currently playing song.
  
  
 <a name="env"></a>
