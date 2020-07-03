@@ -69,9 +69,9 @@ class TextCommands(commands.Cog):
         self.bot = bot
 
     @commands.command(name='join',
-                      aliases=['summon'],
+                      aliases=['summon', 'connect'],
                       case_insensitive=True,
-                      help='Joins the voice channel you\'re in.  Aliases=[summon].')
+                      help='Joins the voice channel you\'re in.  Aliases=[summon, connect].')
     @debug_log
     async def join(self, ctx, *, channel: discord.VoiceChannel = None):
         """
