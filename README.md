@@ -32,10 +32,12 @@ Exclusive bot for Donut Hole server.
 * `play` - Plays from a url (doesn't pre-download).
 * `stop` - Stops playing to voice.
 * `volume` - Changes the bot's volume.
+* `pause` - Pauses the audio playing.
+* `resume` - Resumes the audio playing.
  
  
 <a name="env"></a>
 ### Environment Variables
-* `DISCORD_TOKEN`(Required) - The Discord Bot token
-* `AUTHORIZED_GUILD_ID`(Optional) - list of authorized guild ids 
-* `DEBUG_ENABLED`(Optional) - flag for debug logging
+* `DISCORD_TOKEN`(Required) - The Discord Bot token.
+* `AUTHORIZED_GUILD_ID`(Optional) - list of authorized guild ids. 
+* `DEBUG_ENABLED`(Optional) - Flag for debug logging.

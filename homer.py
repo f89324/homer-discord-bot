@@ -122,7 +122,7 @@ class TextCommands(commands.Cog):
             player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
             ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
 
-        await ctx.send(f'```Now playing: {player.title}```')
+        await ctx.send(f'```Now playing: \'{player.title}\'```')
 
     @commands.command(name='stop',
                       aliases=['mute', 'shutup'],
@@ -155,6 +155,36 @@ class TextCommands(commands.Cog):
 
         ctx.voice_client.source.volume = vol / 100
         await ctx.send(f'```Changed my volume to {vol}```')
+
+    @commands.command(name='pause',
+                      case_insensitive=True,
+                      help='Pauses the audio playing.')
+    @debug
+    async def pause(self, ctx):
+        """
+        Pauses the audio playing.
+        """
+        if ctx.voice_client is None:
+            await ctx.send('```I\'m not connected to a voice channel.```')
+            return
+
+        ctx.voice_client.pause()
+        await ctx.send(f'```Pause \'{ctx.voice_client.source.title}\'```')
+
+    @commands.command(name='resume',
+                      case_insensitive=True,
+                      help='Resumes the audio playing.')
+    @debug
+    async def resume(self, ctx):
+        """
+        Resumes the audio playing.
+        """
+        if ctx.voice_client is None:
+            await ctx.send('```I\'m not connected to a voice channel.```')
+            return
+
+        ctx.voice_client.resume()
+        await ctx.send(f'``` Resume \'{ctx.voice_client.source.title}\'```')
 
 
 @debug
