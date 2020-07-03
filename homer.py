@@ -156,6 +156,9 @@ class TextCommands(commands.Cog):
         if vol is None:
             return await ctx.send(f'```My volume is [{ctx.voice_client.source.volume * 100}] now.```')
 
+        if not 0 < vol < 101:
+            return await ctx.send('```Please enter a value between 1 and 100.```')
+
         ctx.voice_client.source.volume = vol / 100
         await ctx.send(f'```Changed my volume to {vol}```')
 
