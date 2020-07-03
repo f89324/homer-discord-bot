@@ -100,7 +100,8 @@ class TextCommands(commands.Cog):
         await ctx.send('```Ok. I\'m leaving.```')
 
         if ctx.voice_client is None:
-            return await ctx.send('```I\'m not connected to a voice channel.```')
+            await ctx.send('```I\'m not connected to a voice channel.```')
+            return
 
         await ctx.voice_client.disconnect()
 
@@ -134,9 +135,10 @@ class TextCommands(commands.Cog):
         Stops playing to voice.
         """
         if ctx.voice_client is None:
-            return await ctx.send('```I\'m not connected to a voice channel.```')
-        else:
-            ctx.voice_client.stop()
+            await ctx.send('```I\'m not connected to a voice channel.```')
+            return
+
+        ctx.voice_client.stop()
 
     @commands.command(name='volume',
                       aliases=['vol'],
@@ -148,7 +150,8 @@ class TextCommands(commands.Cog):
         Changes the bot's volume.
         """
         if ctx.voice_client is None:
-            return await ctx.send('```I\'m not connected to a voice channel.```')
+            await ctx.send('```I\'m not connected to a voice channel.```')
+            return
 
         if vol is None:
             return await ctx.send(f'```My volume is [{ctx.voice_client.source.volume * 100}] now.```')
