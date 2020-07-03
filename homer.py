@@ -232,8 +232,8 @@ class Homer(commands.Bot):
     @debug_log
     async def on_voice_state_update(self, member, before, after):
 
-        # Don't react to bot own actions
-        if member.id == self.user.id:
+        # Don't react to bot's actions
+        if member.id == self.user.id or member.bot:
             return
 
         # Don't react to actions like 'self mute'
