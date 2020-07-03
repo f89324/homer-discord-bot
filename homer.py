@@ -30,7 +30,7 @@ YTDL_OPTIONS = {
 }
 
 
-def debug(fn):
+def debug_log(fn):
     @functools.wraps(fn)
     async def wrapped(*args, **kwargs):
         if __DEBUG_ENABLED is True:
@@ -72,7 +72,7 @@ class TextCommands(commands.Cog):
                       aliases=['summon'],
                       case_insensitive=True,
                       help='Joins the voice channel you\'re in.  Aliases=[summon].')
-    @debug
+    @debug_log
     async def join(self, ctx, *, channel: discord.VoiceChannel = None):
         """
         Joins a voice channel.
@@ -92,7 +92,7 @@ class TextCommands(commands.Cog):
     @commands.command(name='leave',
                       case_insensitive=True,
                       help='Leaves a voice channel.')
-    @debug
+    @debug_log
     async def leave(self, ctx):
         """
         Leaves a voice channel.
@@ -108,7 +108,7 @@ class TextCommands(commands.Cog):
     @commands.command(name='play',
                       case_insensitive=True,
                       help='Plays audio from a url (doesn\'t pre-download).')
-    @debug
+    @debug_log
     async def play(self, ctx, *, url):
         """
         Plays audio from a url (doesn't pre-download).
@@ -129,7 +129,7 @@ class TextCommands(commands.Cog):
                       aliases=['mute', 'shutup'],
                       case_insensitive=True,
                       help='Stops playing to voice. Aliases=[mute, shutup].')
-    @debug
+    @debug_log
     async def stop(self, ctx):
         """
         Stops playing to voice.
@@ -144,7 +144,7 @@ class TextCommands(commands.Cog):
                       aliases=['vol'],
                       case_insensitive=True,
                       help='Changes the bot\'s volume. Aliases=[vol].')
-    @debug
+    @debug_log
     async def volume(self, ctx, vol: int = None):
         """
         Changes the bot's volume.
@@ -162,7 +162,7 @@ class TextCommands(commands.Cog):
     @commands.command(name='pause',
                       case_insensitive=True,
                       help='Pauses the audio playing.')
-    @debug
+    @debug_log
     async def pause(self, ctx):
         """
         Pauses the audio playing.
@@ -177,7 +177,7 @@ class TextCommands(commands.Cog):
     @commands.command(name='resume',
                       case_insensitive=True,
                       help='Resumes the audio playing.')
-    @debug
+    @debug_log
     async def resume(self, ctx):
         """
         Resumes the audio playing.
@@ -190,7 +190,7 @@ class TextCommands(commands.Cog):
         await ctx.send(f'``` Resume \'{ctx.voice_client.source.title}\'```')
 
 
-@debug
+@debug_log
 async def play_file(filename):
     ffmpeg_options = {
         'options': '-vn',
@@ -214,7 +214,7 @@ class Homer(commands.Bot):
 
         self.run(token)
 
-    @debug
+    @debug_log
     async def on_ready(self):
         await self.__log_all_connected_guilds()
 
@@ -226,7 +226,7 @@ class Homer(commands.Bot):
         traceback.print_exception(type(error), error, error.__traceback__)
         await ctx.send(f'```{error}```')
 
-    @debug
+    @debug_log
     async def on_voice_state_update(self, member, before, after):
 
         # Don't react to bot own actions
