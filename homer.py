@@ -33,7 +33,7 @@ YTDL_OPTIONS = {
 def debug_log(fn):
     @functools.wraps(fn)
     async def wrapped(*args, **kwargs):
-        if __DEBUG_ENABLED is True:
+        if __DEBUG_ENABLED == 'true':
             print(f'FUN [{fn.__name__}] {args} {kwargs}')
 
         return await fn(*args, **kwargs)
