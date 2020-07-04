@@ -264,10 +264,16 @@ class Homer(commands.Bot):
                 and not self.voice_clients:
             print(f'Joins {member.name} in the voice channel #{after.channel.name}')
             await after.channel.connect()
-        elif after.channel is not None and await self.__is_homer_in_this_channel(after.channel):
+
+        # Someone has joined the channel the bot is currently in.
+        if after.channel is not None \
+                and await self.__is_homer_in_this_channel(after.channel):
             print(f'{member.name}(id: {member.id}) join me in #{after.channel.name}!')
             await self.__play_intro(after.channel, member.id)
-        elif before.channel is not None and await self.__is_homer_in_this_channel(before.channel):
+
+        # Someone left the channel the bot is currently in.
+        if before.channel is not None \
+                and await self.__is_homer_in_this_channel(before.channel):
             await self.__leave_voice_if_alone(before.channel)
 
     async def __log_all_connected_guilds(self):
@@ -280,18 +286,23 @@ class Homer(commands.Bot):
     async def __play_intro(self, channel, member_id):
         vc = discord.utils.find(lambda ch: ch.channel.id == channel.id, self.voice_clients)
 
-        if vc is not None:
-            resources_dir = os.path.dirname(__file__) + 'resources/'
+        if vc is not None and not vc.is_playing():
+            filename = await self.__get_intro_for_member(member_id)
+            audio_source = await create_audio_source_by_file(filename)
+            vc.play(audio_source, after=lambda e: print(f'Player error: {e}') if e else None)
 
-            if member_id == 141471739258339328:  # Reif
-                filename = os.path.join(resources_dir, 'DelRio.mp3')
-            elif member_id == 94541638709293056:  # KIFFIR
-                filename = os.path.join(resources_dir, 'Voices.mp3')
-            else:
-                filename = os.path.join(resources_dir, 'JohnCena.mp3')
+    @staticmethod
+    async def __get_intro_for_member(member_id):
+        resources_dir = os.path.dirname(__file__) + 'resources/'
 
-            player = await create_audio_source_by_file(filename)
-            vc.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
+        if member_id == 141471739258339328:  # Reif
+            filename = os.path.join(resources_dir, 'DelRio.mp3')
+        elif member_id == 94541638709293056:  # KIFFIR
+            filename = os.path.join(resources_dir, 'Voices.mp3')
+        else:
+            filename = os.path.join(resources_dir, 'JohnCena.mp3')
+
+        return filename
 
     async def __is_homer_in_this_channel(self, channel):
         return discord.utils.find(lambda m: m.id == self.user.id, channel.members) is not None
