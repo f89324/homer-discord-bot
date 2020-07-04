@@ -52,17 +52,17 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.duration = data.get('duration')  # Length of the video in seconds
 
     @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False):
+    async def from_url(cls, url, *, loop=None):
         loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
 
         if 'entries' in data:
             # take first item from a playlist
             data = data['entries'][0]
 
-        filename = data['url'] if stream else ytdl.prepare_filename(data)
+        source = data['url']
 
-        return cls(await play_file(filename), data=data)
+        return cls(await create_audio_source_by_file(source), data=data)
 
 
 class TextCommands(commands.Cog):
@@ -211,12 +211,12 @@ duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```'''
 
 
 @debug_log
-async def play_file(filename):
+async def create_audio_source_by_file(source):
     ffmpeg_options = {
         'options': '-vn',
     }
 
-    return discord.FFmpegPCMAudio(filename, **ffmpeg_options)
+    return discord.FFmpegPCMAudio(source, **ffmpeg_options)
 
 
 class Homer(commands.Bot):
@@ -290,7 +290,7 @@ class Homer(commands.Bot):
             else:
                 filename = os.path.join(resources_dir, 'JohnCena.mp3')
 
-            player = await play_file(filename)
+            player = await create_audio_source_by_file(filename)
             vc.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
 
     async def __is_homer_in_this_channel(self, channel):
