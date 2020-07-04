@@ -100,7 +100,7 @@ class TextCommands(commands.Cog):
         """
         await ctx.send('```Ok. I\'m leaving.```')
 
-        if ctx.voice_client is None:
+        if ctx.voice_client is None or not ctx.voice_client.is_connected():
             await ctx.send('```I\'m not connected to a voice channel.```')
             return
 
@@ -114,7 +114,7 @@ class TextCommands(commands.Cog):
         """
         Plays audio from a url (doesn't pre-download).
         """
-        if ctx.voice_client is None:
+        if ctx.voice_client is None or not ctx.voice_client.is_connected():
             if ctx.author.voice:
                 await ctx.author.voice.channel.connect()
             else:
@@ -136,7 +136,7 @@ duration: [{datetime.timedelta(seconds=audio_from_url.duration)}]```''')
         """
         Stops playing to voice.
         """
-        if ctx.voice_client is None:
+        if ctx.voice_client is None or not ctx.voice_client.is_connected():
             await ctx.send('```I\'m not connected to a voice channel.```')
             return
 
@@ -151,7 +151,7 @@ duration: [{datetime.timedelta(seconds=audio_from_url.duration)}]```''')
         """
         Changes the bot's volume.
         """
-        if ctx.voice_client is None:
+        if ctx.voice_client is None or not ctx.voice_client.is_connected():
             await ctx.send('```I\'m not connected to a voice channel.```')
             return
 
@@ -172,7 +172,7 @@ duration: [{datetime.timedelta(seconds=audio_from_url.duration)}]```''')
         """
         Pauses the audio playing.
         """
-        if ctx.voice_client is None:
+        if ctx.voice_client is None or not ctx.voice_client.is_connected():
             await ctx.send('```I\'m not connected to a voice channel.```')
             return
 
@@ -187,7 +187,7 @@ duration: [{datetime.timedelta(seconds=audio_from_url.duration)}]```''')
         """
         Resumes the audio playing.
         """
-        if ctx.voice_client is None:
+        if ctx.voice_client is None or not ctx.voice_client.is_connected():
             await ctx.send('```I\'m not connected to a voice channel.```')
             return
 
