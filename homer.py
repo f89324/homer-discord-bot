@@ -198,7 +198,6 @@ duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```'''
 async def create_audio_source(source):
     ffmpeg_options = {
         'options': '-vn',
-        'before_options': "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
     }
 
     return discord.FFmpegPCMAudio(source, **ffmpeg_options)
