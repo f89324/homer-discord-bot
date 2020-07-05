@@ -62,7 +62,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         source = data['url']
 
-        return cls(await create_audio_source_by_file(source), data=data)
+        return cls(await create_audio_source(source), data=data)
 
 
 class TextCommands(commands.Cog):
@@ -211,9 +211,10 @@ duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```'''
 
 
 @debug_log
-async def create_audio_source_by_file(source):
+async def create_audio_source(source):
     ffmpeg_options = {
         'options': '-vn',
+        'before_options': "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
     }
 
     return discord.FFmpegPCMAudio(source, **ffmpeg_options)
@@ -288,7 +289,7 @@ class Homer(commands.Bot):
 
         if vc is not None and not vc.is_playing():
             filename = await self.__get_intro_for_member(member_id)
-            audio_source = await create_audio_source_by_file(filename)
+            audio_source = await create_audio_source(filename)
             vc.play(audio_source, after=lambda e: print(f'Player error: {e}') if e else None)
 
     @staticmethod
