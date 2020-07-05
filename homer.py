@@ -182,7 +182,6 @@ class TextCommands(commands.Cog):
         await ctx.send(f'''```Now Playing: \'{ctx.voice_client.source.title}\'
 duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```''')
 
-    @play.before_invoke
     @leave.before_invoke
     @stop.before_invoke
     @now_playing.before_invoke
