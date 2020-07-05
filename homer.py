@@ -103,7 +103,8 @@ class TextCommands(commands.Cog):
 
     @commands.command(name='play',
                       case_insensitive=True,
-                      help='Plays audio from a url (doesn\'t pre-download).')
+                      help='Plays audio from a url (doesn\'t pre-download). \n '
+                           'Supported sites: https://ytdl-org.github.io/youtube-dl/supportedsites.html')
     @debug_log
     async def play(self, ctx, *, url):
         """
