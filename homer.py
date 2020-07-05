@@ -118,6 +118,7 @@ class TextCommands(commands.Cog):
         async with ctx.typing():
             audio_from_url = await YTDLSource.from_url(url, loop=self.bot.loop)
             ctx.voice_client.play(audio_from_url, after=lambda e: print(f'Player error: {e}') if e else None)
+            await self.now_playing(ctx)
 
     @commands.command(name='stop',
                       aliases=['mute', 'shutup'],
@@ -173,7 +174,6 @@ class TextCommands(commands.Cog):
     @commands.command(name='now_playing',
                       aliases=['np', 'current', 'current-song', 'playing'],
                       help='Display information about the currently playing song. Aliases=[np, current, current-song, playing].')
-    @play.after_invoke
     @debug_log
     async def now_playing(self, ctx):
         """
