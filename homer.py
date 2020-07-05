@@ -99,11 +99,6 @@ class TextCommands(commands.Cog):
         Leaves a voice channel.
         """
         await ctx.send('```Ok. I\'m leaving.```')
-
-        if ctx.voice_client is None or not ctx.voice_client.is_connected():
-            await ctx.send('```I\'m not connected to a voice channel.```')
-            return
-
         await ctx.voice_client.disconnect()
 
     @commands.command(name='play',
@@ -136,10 +131,6 @@ duration: [{datetime.timedelta(seconds=audio_from_url.duration)}]```''')
         """
         Stops playing to voice.
         """
-        if ctx.voice_client is None or not ctx.voice_client.is_connected():
-            await ctx.send('```I\'m not connected to a voice channel.```')
-            return
-
         ctx.voice_client.stop()
 
     @commands.command(name='volume',
@@ -151,10 +142,6 @@ duration: [{datetime.timedelta(seconds=audio_from_url.duration)}]```''')
         """
         Changes the bot's volume.
         """
-        if ctx.voice_client is None or not ctx.voice_client.is_connected():
-            await ctx.send('```I\'m not connected to a voice channel.```')
-            return
-
         if vol is None:
             return await ctx.send(f'```My volume is [{ctx.voice_client.source.volume * 100}] now.```')
 
@@ -172,10 +159,6 @@ duration: [{datetime.timedelta(seconds=audio_from_url.duration)}]```''')
         """
         Pauses the audio playing.
         """
-        if ctx.voice_client is None or not ctx.voice_client.is_connected():
-            await ctx.send('```I\'m not connected to a voice channel.```')
-            return
-
         ctx.voice_client.pause()
         await ctx.send(f'```Pause \'{ctx.voice_client.source.title}\'```')
 
@@ -187,10 +170,6 @@ duration: [{datetime.timedelta(seconds=audio_from_url.duration)}]```''')
         """
         Resumes the audio playing.
         """
-        if ctx.voice_client is None or not ctx.voice_client.is_connected():
-            await ctx.send('```I\'m not connected to a voice channel.```')
-            return
-
         ctx.voice_client.resume()
         await ctx.send(f'``` Resume \'{ctx.voice_client.source.title}\'```')
 
@@ -202,12 +181,19 @@ duration: [{datetime.timedelta(seconds=audio_from_url.duration)}]```''')
         """
         Display information about the currently playing song.
         """
-        if ctx.voice_client is None or not ctx.voice_client.is_connected():
-            await ctx.send('```I\'m not connected to a voice channel.```')
-            return
-
         await ctx.send(f'''```Now Playing: \'{ctx.voice_client.source.title}\'
 duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```''')
+
+    @play.before_invoke
+    @leave.before_invoke
+    @stop.before_invoke
+    @now_playing.before_invoke
+    @pause.before_invoke
+    @resume.before_invoke
+    @volume.before_invoke
+    async def ensure_voice(self, ctx):
+        if ctx.voice_client is None or not ctx.voice_client.is_connected():
+            raise commands.CommandError('I\'m not connected to a voice channel.')
 
 
 @debug_log
