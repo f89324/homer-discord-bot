@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import ast
 import asyncio
 import datetime
 import functools
@@ -268,21 +269,19 @@ class Homer(commands.Bot):
 
         if vc is not None and not vc.is_playing():
             filename = await self.__get_intro_for_member(member_id)
-            audio_source = await create_audio_source(filename)
-            vc.play(audio_source, after=lambda e: print(f'Player error: {e}') if e else None)
+
+            if filename is not None:
+                audio_source = await create_audio_source(filename)
+                vc.play(audio_source, after=lambda e: print(f'Player error: {e}') if e else None)
 
     @staticmethod
     async def __get_intro_for_member(member_id):
-        resources_dir = os.path.dirname(__file__) + 'resources/'
+        filename = MEMBERS_WITH_INTRO.get(member_id, None)
 
-        if member_id == 141471739258339328:  # Reif
-            filename = os.path.join(resources_dir, 'DelRio.mp3')
-        elif member_id == 94541638709293056:  # KIFFIR
-            filename = os.path.join(resources_dir, 'Voices.mp3')
+        if filename is not None:
+            return os.path.join(os.path.dirname(__file__) + 'resources/', filename)
         else:
-            filename = os.path.join(resources_dir, 'JohnCena.mp3')
-
-        return filename
+            return None
 
     async def __is_homer_in_this_channel(self, channel):
         return discord.utils.find(lambda m: m.id == self.user.id, channel.members) is not None
@@ -301,6 +300,9 @@ if __name__ == '__main__':
     __TOKEN = os.getenv('DISCORD_TOKEN')
     __AUTHORIZED_GUILD_ID = os.getenv('AUTHORIZED_GUILD_ID')
     __DEBUG_ENABLED = os.getenv('DEBUG_ENABLED')
+
+    # Dict "{id: 'filename.mp3'}"
+    MEMBERS_WITH_INTRO = ast.literal_eval(os.getenv('MEMBERS_WITH_INTRO'))
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
 
