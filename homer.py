@@ -46,7 +46,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
 
-        self.data = data
         self.title = data.get('title')
         self.url = data.get('url')
         self.duration = data.get('duration')  # Length of the video in seconds
@@ -56,13 +55,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         loop = loop or asyncio.get_event_loop()
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
 
-        if 'entries' in data:
-            # take first item from a playlist
-            data = data['entries'][0]
-
-        source = data['url']
-
-        return cls(await create_audio_source(source), data=data)
+        return cls(await create_audio_source(data['url']), data=data)
 
 
 class TextCommands(commands.Cog):
