@@ -1,6 +1,6 @@
 # Homer-bot
 
-![homer-logo](https://github.com/f89324/homer-discord-bot/blob/develop/resources/homer.png)
+![homer-logo](https://github.com/f89324/homer-discord-bot/blob/develop/resources/homer.png)  
 Exclusive bot for Donut Hole server.
 
 <a name="requirements"></a>
@@ -11,13 +11,13 @@ Exclusive bot for Donut Hole server.
 
 
 ### Setup
-#### Running the Bot
+#### Running the bot
 1. Ensure that all [requirements](#requirements) is installed.
 2. Export  the [environments variables](#env).
 3. `python3 homer.py`
 
 <a name="env"></a>
-#### Environment Variables
+#### Environment variables
 * `DISCORD_TOKEN`(Required) - The Discord Bot token.
 * `AUTHORIZED_GUILD_ID`(Optional) - list of authorized guild ids.
 * `DEBUG_ENABLED`(Optional) - Flag for debug logging. (\'true\' or \'false\')
@@ -25,13 +25,19 @@ Exclusive bot for Donut Hole server.
 
 
 ### Usage
-#### Basic Commands
+
+#### Common behavior
+* The bot will automatically connect to the audio channel if it is idle and someone enters the audio channel.
+* The bot will automatically disconnect from the audio channel if the last person left.
+* The bot will play personal intro music when specific people enter an active audio channel.
+
+#### Basic commands
 * `help` - Prints a list of commands.
 * `join` - Joins a voice channel.
 * `leave` - Leaves a voice channel.
 * `play` - Plays from a url (doesn't pre-download).
 * `stop` - Stops playing to voice.
-* `volume` - Changes the bot's volume.
+* `volume` - Changes the bot's volume. If the command is called without an argument, the bot will respond with the current sound level.
 * `pause` - Pauses the audio playing.
 * `resume` - Resumes the audio playing.
 * `now_playing` - Display information about the currently playing song.

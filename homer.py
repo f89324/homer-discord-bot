@@ -129,7 +129,9 @@ class TextCommands(commands.Cog):
     @commands.command(name='volume',
                       aliases=['vol'],
                       case_insensitive=True,
-                      help='Changes the bot\'s volume. Aliases=[vol].')
+                      help='Changes the bot\'s volume. \
+                      If the command is called without an argument, the bot will respond with the current sound level. \
+                      Aliases=[vol].')
     @debug_log
     async def volume(self, ctx, vol: int = None):
         """
@@ -171,7 +173,8 @@ class TextCommands(commands.Cog):
 
     @commands.command(name='now_playing',
                       aliases=['np', 'current', 'current-song', 'playing'],
-                      help='Display information about the currently playing song. Aliases=[np, current, current-song, playing].')
+                      help='Display information about the currently playing song. \
+                      Aliases=[np, current, current-song, playing].')
     @debug_log
     async def now_playing(self, ctx):
         """
