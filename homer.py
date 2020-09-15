@@ -66,7 +66,7 @@ class TextCommands(commands.Cog):
     @commands.command(name='join',
                       aliases=['summon', 'connect'],
                       case_insensitive=True,
-                      help='Joins the voice channel you\'re in. Aliases=[summon, connect].')
+                      help='Joins the voice channel you\'re in.')
     @debug_log
     async def join(self, ctx, *, channel: discord.VoiceChannel = None):
         """
@@ -118,7 +118,7 @@ class TextCommands(commands.Cog):
     @commands.command(name='stop',
                       aliases=['mute', 'shutup'],
                       case_insensitive=True,
-                      help='Stops playing to voice. Aliases=[mute, shutup].')
+                      help='Stops playing to voice.')
     @debug_log
     async def stop(self, ctx):
         """
@@ -130,8 +130,7 @@ class TextCommands(commands.Cog):
                       aliases=['vol'],
                       case_insensitive=True,
                       help='Changes the bot\'s volume. \
-                      If the command is called without an argument, the bot will respond with the current sound level. \
-                      Aliases=[vol].')
+If the command is called without an argument, the bot will respond with the current sound level.')
     @debug_log
     async def volume(self, ctx, vol: int = None):
         """
@@ -173,8 +172,7 @@ class TextCommands(commands.Cog):
 
     @commands.command(name='now_playing',
                       aliases=['np', 'current', 'current-song', 'playing'],
-                      help='Display information about the currently playing song. \
-                      Aliases=[np, current, current-song, playing].')
+                      help='Display information about the currently playing song.')
     @debug_log
     async def now_playing(self, ctx):
         """
