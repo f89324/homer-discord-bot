@@ -139,9 +139,6 @@ If the command is called without an argument, the bot will respond with the curr
         if vol is None:
             return await ctx.send(f'```My volume is [{ctx.voice_client.source.volume * 100}] now.```')
 
-        if not ctx.voice_client.is_playing():
-            raise commands.CommandError('I\'m not playing anything.')
-
         if not 0 < vol < 101:
             return await ctx.send('```Please enter a value between 1 and 100.```')
 
@@ -191,6 +188,14 @@ duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```'''
         if ctx.voice_client is None or not ctx.voice_client.is_connected():
             raise commands.CommandError('I\'m not connected to a voice channel.')
 
+    @resume.before_invoke
+    @pause.before_invoke
+    @volume.before_invoke
+    @now_playing.before_invoke
+    @stop.before_invoke
+    async def ensure_playing(self, ctx):
+        if not ctx.voice_client.is_playing():
+            raise commands.CommandError('I\'m not playing anything.')
 
 @debug_log
 async def create_audio_source(source):
