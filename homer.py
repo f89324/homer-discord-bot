@@ -15,22 +15,6 @@ from dotenv import load_dotenv
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ''
 
-YTDL_OPTIONS = {
-    'format': 'bestaudio/best',
-    'extractaudio': True,
-    'audioformat': 'mp3',
-    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
-    'restrictfilenames': True,
-    'noplaylist': True,
-    'nocheckcertificate': True,
-    'ignoreerrors': False,
-    'logtostderr': False,
-    'quiet': True,
-    'no_warnings': True,
-    'default_search': 'auto',
-    'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
-}
-
 
 def debug_log(fn):
     @functools.wraps(fn)
@@ -44,7 +28,7 @@ def debug_log(fn):
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
-    def __init__(self, source, *, data, volume=0.5):
+    def __init__(self, source, data, volume=0.5):
         super().__init__(source, volume)
 
         self.title = data.get('title')
@@ -52,7 +36,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.duration = data.get('duration')  # Length of the video in seconds
 
     @classmethod
-    async def from_url(cls, url, *, loop=None):
+    async def from_url(cls, url, loop=None):
         loop = loop or asyncio.get_event_loop()
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
 
@@ -68,7 +52,7 @@ class TextCommands(commands.Cog):
                       case_insensitive=True,
                       help='Joins the voice channel you\'re in.')
     @debug_log
-    async def join(self, ctx, *, channel: discord.VoiceChannel = None):
+    async def join(self, ctx, channel: discord.VoiceChannel = None):
         """
         Joins a voice channel.
         """
@@ -100,7 +84,7 @@ class TextCommands(commands.Cog):
                       help='Plays audio from a url (doesn\'t pre-download). \n '
                            'Supported sites: https://ytdl-org.github.io/youtube-dl/supportedsites.html')
     @debug_log
-    async def play(self, ctx, *, url):
+    async def play(self, ctx, url):
         """
         Plays audio from a url (doesn't pre-download).
         """
@@ -108,7 +92,7 @@ class TextCommands(commands.Cog):
             if ctx.author.voice:
                 await ctx.author.voice.channel.connect()
             else:
-                return await ctx.send("```You are not connected to a voice channel.```")
+                return await ctx.send('```You are not connected to a voice channel.```')
 
         async with ctx.typing():
             audio_from_url = await YTDLSource.from_url(url, loop=self.bot.loop)
@@ -137,7 +121,7 @@ If the command is called without an argument, the bot will respond with the curr
         Changes the bot's volume.
         """
         if vol is None:
-            return await ctx.send(f'```My volume is [{ctx.voice_client.source.volume * 100}] now.```')
+            return await ctx.send(f'```My volume is [{int(ctx.voice_client.source.volume * 100)}/100] now.```')
 
         if not 0 < vol < 101:
             return await ctx.send('```Please enter a value between 1 and 100.```')
@@ -194,8 +178,9 @@ duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```'''
     @now_playing.before_invoke
     @stop.before_invoke
     async def ensure_playing(self, ctx):
-        if not ctx.voice_client.is_playing():
+        if ctx.voice_client is None or not ctx.voice_client.is_playing():
             raise commands.CommandError('I\'m not playing anything.')
+
 
 @debug_log
 async def create_audio_source(source):
@@ -306,14 +291,29 @@ if __name__ == '__main__':
     __TOKEN = os.getenv('DISCORD_TOKEN')
     __AUTHORIZED_GUILD_ID = os.getenv('AUTHORIZED_GUILD_ID')
     __DEBUG_ENABLED = os.getenv('DEBUG_ENABLED')
+    __YTDL_OPTIONS = {
+        'format': 'bestaudio/best',
+        'extractaudio': True,
+        'audioformat': 'mp3',
+        'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+        'restrictfilenames': True,
+        'noplaylist': True,
+        'nocheckcertificate': True,
+        'ignoreerrors': False,
+        'logtostderr': False,
+        'quiet': True,
+        'no_warnings': True,
+        'default_search': 'auto',
+        'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
+    }
 
     # Dict "{id: 'filename.mp3'}"
     MEMBERS_WITH_INTRO = ast.literal_eval(os.getenv('MEMBERS_WITH_INTRO'))
 
-    ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
+    ytdl = youtube_dl.YoutubeDL(__YTDL_OPTIONS)
 
     # According to the discord.py docs (https://discordpy.readthedocs.io/en/latest/api.html#discord.opus.load_opus)
-    # you should not need it on a windows environnement,
+    # you should not need it on a windows environment,
     # which is why it worked on local machine and not on heroku (which is unix based).
     # 'nt' is the value for windows
     if os.name == 'nt' and discord.opus.is_loaded():
