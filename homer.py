@@ -47,6 +47,11 @@ class TextCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    def cog_check(self, ctx: commands.Context):
+        if not ctx.guild:
+            raise commands.NoPrivateMessage('Homer can\'t be used in DM channels.')
+        return True
+
     @commands.command(name='join',
                       aliases=['summon', 'connect'],
                       case_insensitive=True,
