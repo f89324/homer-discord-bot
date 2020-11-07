@@ -275,7 +275,7 @@ class Homer(commands.Bot):
         filename = MEMBERS_WITH_INTRO.get(member_id, None)
 
         if filename is not None:
-            return os.path.join(os.path.dirname(__file__) + 'resources/', filename)
+            return os.path.join(os.path.dirname(__file__), 'resources', filename)
         else:
             return None
 
