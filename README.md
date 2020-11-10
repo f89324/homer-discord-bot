@@ -21,7 +21,7 @@ Exclusive bot for Donut Hole server.
 * `DISCORD_TOKEN`(Required) - The Discord Bot token.
 * `AUTHORIZED_GUILDS`(Optional) - list of authorized guild ids.
 * `DEBUG_ENABLED`(Optional) - Flag for debug logging. (\'true\' or \'false\')
-* `MEMBERS_WITH_INTRO`(Optional) - Dictionary {id -> intro filename}.
+* `INTROS`(Optional) - JSON member voice intro config.
 
 
 ### Usage

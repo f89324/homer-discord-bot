@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-import ast
 import asyncio
 import datetime
 import functools
+import json
 import os
 import traceback
-from typing import List
+from typing import List, Dict, Optional
 
 import discord
 import youtube_dl
@@ -198,12 +198,13 @@ async def create_audio_source(source):
 
 
 class Homer(commands.Bot):
-    def __init__(self, token: str, authorized_guilds: List[str]):
+    def __init__(self, token: str, authorized_guilds: List[str], intros: Dict[str, dict]):
         super().__init__(command_prefix=when_mentioned_or('!homer '),
                          description='Exclusive bot for Donut Hole server.',
                          case_insensitive=True, )
 
         self.authorized_guilds = authorized_guilds
+        self.intros = intros
 
         self.add_cog(TextCommands(self))
         self.event(self.on_ready)
@@ -272,13 +273,13 @@ class Homer(commands.Bot):
                 audio_source = await create_audio_source(filename)
                 vc.play(audio_source, after=lambda e: print(f'Player error: {e}') if e else None)
 
-    @staticmethod
-    async def __get_intro_for_member(member_id):
-        filename = MEMBERS_WITH_INTRO.get(member_id, None)
+    async def __get_intro_for_member(self, member_id):
+        intro: Optional[dict] = self.intros.get(member_id)
 
-        if filename is not None:
-            return os.path.join(os.path.dirname(__file__), 'resources', filename)
+        if intro is not None:
+            return os.path.join(os.path.dirname(__file__), 'resources', 'intro', intro['file'])
         else:
+            print(f'A member with id [{member_id}] does not have an intro.')
             return None
 
     async def __is_homer_in_this_channel(self, channel):
@@ -293,11 +294,26 @@ class Homer(commands.Bot):
                 await vc.disconnect()
 
 
+def create_intros(intros: str) -> Dict[str, dict]:
+    result: Dict[str, dict] = {}
+
+    env_var: Optional[str] = os.getenv(intros)
+
+    if env_var is not None:
+        for intro in json.loads(env_var):
+            result.update({intro['id']: intro})
+
+    return result
+
+
 if __name__ == '__main__':
     load_dotenv()
-    __TOKEN = os.getenv('DISCORD_TOKEN')
-    __AUTHORIZED_GUILDS = os.getenv('AUTHORIZED_GUILDS')
-    __DEBUG_ENABLED = os.getenv('DEBUG_ENABLED')
+
+    __TOKEN: Optional[str] = os.getenv('DISCORD_TOKEN')
+    __AUTHORIZED_GUILDS: Optional[List[str]] = os.getenv('AUTHORIZED_GUILDS')
+    __DEBUG_ENABLED: Optional[bool] = os.getenv('DEBUG_ENABLED')
+    __INTROS: Dict[str, dict] = create_intros('INTROS')
+
     __YTDL_OPTIONS = {
         'format': 'bestaudio/best',
         'extractaudio': True,
@@ -313,10 +329,6 @@ if __name__ == '__main__':
         'default_search': 'auto',
         'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
     }
-
-    # Dict "{id: 'filename.mp3'}"
-    MEMBERS_WITH_INTRO = ast.literal_eval(os.getenv('MEMBERS_WITH_INTRO'))
-
     ytdl = youtube_dl.YoutubeDL(__YTDL_OPTIONS)
 
     # According to the discord.py docs (https://discordpy.readthedocs.io/en/latest/api.html#discord.opus.load_opus)
@@ -326,4 +338,4 @@ if __name__ == '__main__':
     if os.name == 'nt' and discord.opus.is_loaded():
         discord.opus.load_opus('libopus.so')
 
-    homer = Homer(__TOKEN, __AUTHORIZED_GUILDS)
+    homer = Homer(__TOKEN, __AUTHORIZED_GUILDS, __INTROS)
