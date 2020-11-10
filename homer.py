@@ -5,6 +5,7 @@ import datetime
 import functools
 import os
 import traceback
+from typing import List
 
 import discord
 import youtube_dl
@@ -197,12 +198,12 @@ async def create_audio_source(source):
 
 
 class Homer(commands.Bot):
-    def __init__(self, token, authorized_guild_id):
+    def __init__(self, token: str, authorized_guilds: List[str]):
         super().__init__(command_prefix=when_mentioned_or('!homer '),
                          description='Exclusive bot for Donut Hole server.',
                          case_insensitive=True, )
 
-        self.authorized_guild_id = authorized_guild_id
+        self.authorized_guilds = authorized_guilds
 
         self.add_cog(TextCommands(self))
         self.event(self.on_ready)
@@ -215,9 +216,10 @@ class Homer(commands.Bot):
     async def on_ready(self):
         await self.__log_all_connected_guilds()
 
-        guild = discord.utils.find(lambda g: str(g.id) == self.authorized_guild_id, self.guilds)
-        if guild is None:
-            raise RuntimeError(f'```guild [{self.authorized_guild_id}] not found in list of authorized guilds!```')
+        if self.authorized_guilds is not None:
+            guild = discord.utils.find(lambda g: str(g.id) not in self.authorized_guilds, self.guilds)
+            if guild is None:
+                raise RuntimeError(f'```guild [{guild}] not found in list of authorized guilds!```')
 
     async def on_command_error(self, ctx, error):
         traceback.print_exception(type(error), error, error.__traceback__)
@@ -294,7 +296,7 @@ class Homer(commands.Bot):
 if __name__ == '__main__':
     load_dotenv()
     __TOKEN = os.getenv('DISCORD_TOKEN')
-    __AUTHORIZED_GUILD_ID = os.getenv('AUTHORIZED_GUILD_ID')
+    __AUTHORIZED_GUILDS = os.getenv('AUTHORIZED_GUILDS')
     __DEBUG_ENABLED = os.getenv('DEBUG_ENABLED')
     __YTDL_OPTIONS = {
         'format': 'bestaudio/best',
@@ -324,4 +326,4 @@ if __name__ == '__main__':
     if os.name == 'nt' and discord.opus.is_loaded():
         discord.opus.load_opus('libopus.so')
 
-    homer = Homer(__TOKEN, __AUTHORIZED_GUILD_ID)
+    homer = Homer(__TOKEN, __AUTHORIZED_GUILDS)
