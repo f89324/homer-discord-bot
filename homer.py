@@ -44,6 +44,112 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return cls(await create_audio_source(data['url']), data=data)
 
 
+@debug_log
+async def create_audio_source(source):
+    ffmpeg_options = {
+        'options': '-vn'
+    }
+
+    return discord.FFmpegPCMAudio(source, **ffmpeg_options)
+
+
+class Homer(commands.Bot):
+    def __init__(self, token: str, authorized_guilds: List[str], intros: Dict[str, dict]):
+        super().__init__(command_prefix=when_mentioned_or('!homer '),
+                         description='Exclusive bot for Donut Hole server.',
+                         case_insensitive=True, )
+
+        self.authorized_guilds = authorized_guilds
+        self.intros = intros
+
+        self.add_cog(TextCommands(self))
+        self.event(self.on_ready)
+        self.event(self.on_command_error)
+        self.event(self.on_voice_state_update)
+
+        self.run(token)
+
+    @debug_log
+    async def on_ready(self):
+        await self.__log_all_connected_guilds()
+
+        if self.authorized_guilds is not None:
+            guild = discord.utils.find(lambda g: str(g.id) not in self.authorized_guilds, self.guilds)
+            if guild is None:
+                raise RuntimeError(f'```guild [{guild}] not found in list of authorized guilds!```')
+
+    async def on_command_error(self, ctx, error):
+        traceback.print_exception(type(error), error, error.__traceback__)
+        await ctx.send(f'```{error}```')
+
+    @debug_log
+    async def on_voice_state_update(self, member, before, after):
+
+        # Don't react to bot's actions
+        if member.id == self.user.id or member.bot:
+            return
+
+        # Don't react to actions like 'self mute'
+        if before.channel is not None \
+                and after.channel is not None \
+                and after.channel.id == before.channel.id:
+            return
+
+        if after.channel is not None \
+                and not await self.__is_homer_in_this_channel(after.channel) \
+                and not self.voice_clients:
+            print(f'Joins {member.name} in the voice channel #{after.channel.name}')
+            await after.channel.connect()
+
+        # Someone has joined the channel the bot is currently in.
+        if after.channel is not None \
+                and await self.__is_homer_in_this_channel(after.channel):
+            print(f'{member.name}(id: {member.id}) join me in #{after.channel.name}!')
+            await self.__play_intro(after.channel, member.id)
+
+        # Someone left the channel the bot is currently in.
+        if before.channel is not None \
+                and await self.__is_homer_in_this_channel(before.channel):
+            await self.__leave_voice_if_alone(before.channel)
+
+    async def __log_all_connected_guilds(self):
+        print(f'{self.user} is connected to the following guilds:')
+        for guild in self.guilds:
+            print(f'- {guild.name}(id: {guild.id})')
+        print(f'homer bot: {self.user.name}(id: {self.user.id})')
+        print('_____________________________________________')
+
+    async def __play_intro(self, channel, member_id):
+        vc = discord.utils.find(lambda ch: ch.channel.id == channel.id, self.voice_clients)
+
+        if vc is not None and not vc.is_playing():
+            filename = await self.__get_intro_for_member(member_id)
+
+            if filename is not None:
+                audio_source = await create_audio_source(filename)
+                vc.play(audio_source, after=lambda e: print(f'Player error: {e}') if e else None)
+
+    async def __get_intro_for_member(self, member_id):
+        intro: Optional[dict] = self.intros.get(member_id)
+
+        if intro is not None:
+            return os.path.join(os.path.dirname(__file__), 'resources', intro['file'])
+        else:
+            print(f'A member with id [{member_id}] does not have an intro.')
+            return None
+
+    async def __is_homer_in_this_channel(self, channel):
+        return discord.utils.find(lambda m: m.id == self.user.id, channel.members) is not None
+
+    async def __leave_voice_if_alone(self, channel):
+        if len(channel.members) == 1:
+            print(f'I\'m alone. I leave #{channel.name} too.')
+
+            vc = discord.utils.find(lambda ch: ch.channel.id == channel.id, self.voice_clients)
+            if vc is not None:
+                await vc.disconnect()
+
+
 class TextCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -186,112 +292,6 @@ duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```'''
     async def ensure_playing(self, ctx):
         if ctx.voice_client is None or not ctx.voice_client.is_playing():
             raise commands.CommandError('I\'m not playing anything.')
-
-
-@debug_log
-async def create_audio_source(source):
-    ffmpeg_options = {
-        'options': '-vn',
-    }
-
-    return discord.FFmpegPCMAudio(source, **ffmpeg_options)
-
-
-class Homer(commands.Bot):
-    def __init__(self, token: str, authorized_guilds: List[str], intros: Dict[str, dict]):
-        super().__init__(command_prefix=when_mentioned_or('!homer '),
-                         description='Exclusive bot for Donut Hole server.',
-                         case_insensitive=True, )
-
-        self.authorized_guilds = authorized_guilds
-        self.intros = intros
-
-        self.add_cog(TextCommands(self))
-        self.event(self.on_ready)
-        self.event(self.on_command_error)
-        self.event(self.on_voice_state_update)
-
-        self.run(token)
-
-    @debug_log
-    async def on_ready(self):
-        await self.__log_all_connected_guilds()
-
-        if self.authorized_guilds is not None:
-            guild = discord.utils.find(lambda g: str(g.id) not in self.authorized_guilds, self.guilds)
-            if guild is None:
-                raise RuntimeError(f'```guild [{guild}] not found in list of authorized guilds!```')
-
-    async def on_command_error(self, ctx, error):
-        traceback.print_exception(type(error), error, error.__traceback__)
-        await ctx.send(f'```{error}```')
-
-    @debug_log
-    async def on_voice_state_update(self, member, before, after):
-
-        # Don't react to bot's actions
-        if member.id == self.user.id or member.bot:
-            return
-
-        # Don't react to actions like 'self mute'
-        if before.channel is not None \
-                and after.channel is not None \
-                and after.channel.id == before.channel.id:
-            return
-
-        if after.channel is not None \
-                and not await self.__is_homer_in_this_channel(after.channel) \
-                and not self.voice_clients:
-            print(f'Joins {member.name} in the voice channel #{after.channel.name}')
-            await after.channel.connect()
-
-        # Someone has joined the channel the bot is currently in.
-        if after.channel is not None \
-                and await self.__is_homer_in_this_channel(after.channel):
-            print(f'{member.name}(id: {member.id}) join me in #{after.channel.name}!')
-            await self.__play_intro(after.channel, member.id)
-
-        # Someone left the channel the bot is currently in.
-        if before.channel is not None \
-                and await self.__is_homer_in_this_channel(before.channel):
-            await self.__leave_voice_if_alone(before.channel)
-
-    async def __log_all_connected_guilds(self):
-        print(f'{self.user} is connected to the following guilds:')
-        for guild in self.guilds:
-            print(f'- {guild.name}(id: {guild.id})')
-        print(f'homer bot: {self.user.name}(id: {self.user.id})')
-        print('_____________________________________________')
-
-    async def __play_intro(self, channel, member_id):
-        vc = discord.utils.find(lambda ch: ch.channel.id == channel.id, self.voice_clients)
-
-        if vc is not None and not vc.is_playing():
-            filename = await self.__get_intro_for_member(member_id)
-
-            if filename is not None:
-                audio_source = await create_audio_source(filename)
-                vc.play(audio_source, after=lambda e: print(f'Player error: {e}') if e else None)
-
-    async def __get_intro_for_member(self, member_id):
-        intro: Optional[dict] = self.intros.get(member_id)
-
-        if intro is not None:
-            return os.path.join(os.path.dirname(__file__), 'resources', 'intro', intro['file'])
-        else:
-            print(f'A member with id [{member_id}] does not have an intro.')
-            return None
-
-    async def __is_homer_in_this_channel(self, channel):
-        return discord.utils.find(lambda m: m.id == self.user.id, channel.members) is not None
-
-    async def __leave_voice_if_alone(self, channel):
-        if len(channel.members) == 1:
-            print(f'I\'m alone. I leave #{channel.name} too.')
-
-            vc = discord.utils.find(lambda ch: ch.channel.id == channel.id, self.voice_clients)
-            if vc is not None:
-                await vc.disconnect()
 
 
 def create_intros(intros: str) -> Dict[str, dict]:
