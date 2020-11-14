@@ -37,7 +37,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.duration = data.get('duration')  # Length of the video in seconds
 
     @classmethod
-    async def from_url(cls, url, loop=None):
+    async def from_url(cls, url: str, loop=None):
         loop = loop or asyncio.get_event_loop()
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
 
@@ -45,12 +45,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 
 @debug_log
-async def create_audio_source(source):
+async def create_audio_source(source: str, volume: float = 0.5) -> discord.AudioSource:
     ffmpeg_options = {
         'options': '-vn'
     }
 
-    return discord.FFmpegPCMAudio(source, **ffmpeg_options)
+    return discord.PCMVolumeTransformer(
+        discord.FFmpegPCMAudio(source, **ffmpeg_options), volume)
 
 
 class Homer(commands.Bot):
@@ -78,7 +79,7 @@ class Homer(commands.Bot):
             if guild is None:
                 raise RuntimeError(f'```guild [{guild}] not found in list of authorized guilds!```')
 
-    async def on_command_error(self, ctx, error):
+    async def on_command_error(self, ctx: commands.Context, error):
         traceback.print_exception(type(error), error, error.__traceback__)
         await ctx.send(f'```{error}```')
 
@@ -119,17 +120,19 @@ class Homer(commands.Bot):
         print(f'homer bot: {self.user.name}(id: {self.user.id})')
         print('_____________________________________________')
 
-    async def __play_intro(self, channel, member_id):
+    async def __play_intro(self, channel: discord.VoiceChannel, member_id: str):
         vc = discord.utils.find(lambda ch: ch.channel.id == channel.id, self.voice_clients)
 
         if vc is not None and not vc.is_playing():
-            filename = await self.__get_intro_for_member(member_id)
+            filename: Optional[str] = await self.__get_intro_for_member(member_id)
 
             if filename is not None:
                 audio_source = await create_audio_source(filename)
                 vc.play(audio_source, after=lambda e: print(f'Player error: {e}') if e else None)
+        else:
+            print('I can\'t play intro, because I am already playing something.')
 
-    async def __get_intro_for_member(self, member_id):
+    async def __get_intro_for_member(self, member_id: str) -> Optional[str]:
         intro: Optional[dict] = self.intros.get(member_id)
 
         if intro is not None:
@@ -138,10 +141,10 @@ class Homer(commands.Bot):
             print(f'A member with id [{member_id}] does not have an intro.')
             return None
 
-    async def __is_homer_in_this_channel(self, channel):
+    async def __is_homer_in_this_channel(self, channel: discord.VoiceChannel) -> bool:
         return discord.utils.find(lambda m: m.id == self.user.id, channel.members) is not None
 
-    async def __leave_voice_if_alone(self, channel):
+    async def __leave_voice_if_alone(self, channel: discord.VoiceChannel):
         if len(channel.members) == 1:
             print(f'I\'m alone. I leave #{channel.name} too.')
 
@@ -151,7 +154,7 @@ class Homer(commands.Bot):
 
 
 class TextCommands(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: Homer):
         self.bot = bot
 
     def cog_check(self, ctx: commands.Context):
@@ -184,7 +187,7 @@ class TextCommands(commands.Cog):
                       case_insensitive=True,
                       help='Leaves a voice channel.')
     @debug_log
-    async def leave(self, ctx):
+    async def leave(self, ctx: commands.Context):
         """
         Leaves a voice channel.
         """
@@ -196,7 +199,7 @@ class TextCommands(commands.Cog):
                       help='Plays audio from a url (doesn\'t pre-download). \n '
                            'Supported sites: https://ytdl-org.github.io/youtube-dl/supportedsites.html')
     @debug_log
-    async def play(self, ctx, url):
+    async def play(self, ctx: commands.Context, url: str):
         """
         Plays audio from a url (doesn't pre-download).
         """
@@ -216,7 +219,7 @@ class TextCommands(commands.Cog):
                       case_insensitive=True,
                       help='Stops playing to voice.')
     @debug_log
-    async def stop(self, ctx):
+    async def stop(self, ctx: commands.Context):
         """
         Stops playing to voice.
         """
@@ -228,7 +231,7 @@ class TextCommands(commands.Cog):
                       help='Changes the bot\'s volume. \
 If the command is called without an argument, the bot will respond with the current sound level.')
     @debug_log
-    async def volume(self, ctx, vol: int = None):
+    async def volume(self, ctx: commands.Context, vol: int = None):
         """
         Changes the bot's volume.
         """
@@ -245,7 +248,7 @@ If the command is called without an argument, the bot will respond with the curr
                       case_insensitive=True,
                       help='Pauses the audio playing.')
     @debug_log
-    async def pause(self, ctx):
+    async def pause(self, ctx: commands.Context):
         """
         Pauses the audio playing.
         """
@@ -256,7 +259,7 @@ If the command is called without an argument, the bot will respond with the curr
                       case_insensitive=True,
                       help='Resumes the audio playing.')
     @debug_log
-    async def resume(self, ctx):
+    async def resume(self, ctx: commands.Context):
         """
         Resumes the audio playing.
         """
@@ -267,7 +270,7 @@ If the command is called without an argument, the bot will respond with the curr
                       aliases=['np', 'current', 'current-song', 'playing'],
                       help='Display information about the currently playing song.')
     @debug_log
-    async def now_playing(self, ctx):
+    async def now_playing(self, ctx: commands.Context):
         """
         Display information about the currently playing song.
         """
@@ -280,7 +283,7 @@ duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```'''
     @pause.before_invoke
     @resume.before_invoke
     @volume.before_invoke
-    async def ensure_voice(self, ctx):
+    async def __ensure_voice(self, ctx: commands.Context):
         if ctx.voice_client is None or not ctx.voice_client.is_connected():
             raise commands.CommandError('I\'m not connected to a voice channel.')
 
@@ -289,18 +292,18 @@ duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```'''
     @volume.before_invoke
     @now_playing.before_invoke
     @stop.before_invoke
-    async def ensure_playing(self, ctx):
+    async def __ensure_playing(self, ctx: commands.Context):
         if ctx.voice_client is None or not ctx.voice_client.is_playing():
             raise commands.CommandError('I\'m not playing anything.')
 
 
-def create_intros(intros: str) -> Dict[str, dict]:
+def create_intros(env_name: str) -> Dict[str, dict]:
     result: Dict[str, dict] = {}
 
-    env_var: Optional[str] = os.getenv(intros)
+    env_value: Optional[str] = os.getenv(env_name)
 
-    if env_var is not None:
-        for intro in json.loads(env_var):
+    if env_value is not None:
+        for intro in json.loads(env_value):
             result.update({intro['id']: intro})
 
     return result
