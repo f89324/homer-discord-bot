@@ -22,7 +22,7 @@ Exclusive bot for Donut Hole server.
 * `AUTHORIZED_GUILDS`(Optional) - list of authorized guild ids.
 * `DEBUG_ENABLED`(Optional) - Flag for debug logging. (\'true\' or \'false\')
 * `INTROS`(Optional) - JSON member voice intro config.
-
+* `REACTS`(Optional) - JSON voice reaction config.
 
 ### Usage
 
@@ -41,6 +41,7 @@ Exclusive bot for Donut Hole server.
 * `pause` - Pauses the audio playing.
 * `resume` - Resumes the audio playing.
 * `now_playing` - Display information about the currently playing song.
+* `react` - Broadcasts a reaction to the voice channel.
 
 #### Permissions bot need to work
 * `VIEW_CHANNEL` - To read text channels & see voice channels.

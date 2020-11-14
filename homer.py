@@ -62,8 +62,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
     async def create_source(cls, url: str, loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
         data = await loop.run_in_executor(None, lambda: cls.ytdl.extract_info(url, download=False))
+        source = await create_audio_source(data['url'], ffmpeg_options=cls.FFMPEG_OPTIONS)
 
-        return cls(create_audio_source(data['url'], ffmpeg_options=cls.FFMPEG_OPTIONS), data)
+        return cls(source, data)
 
 
 @debug_log
@@ -77,13 +78,14 @@ async def create_audio_source(source: str, ffmpeg_options: dict = None, volume: 
 
 
 class Homer(commands.Bot):
-    def __init__(self, token: str, authorized_guilds: List[str], intros: Dict[str, dict]):
+    def __init__(self, token: str, authorized_guilds: List[str], intros: Dict[str, dict], reacts: Dict[str, dict]):
         super().__init__(command_prefix=when_mentioned_or('!homer '),
                          description='Exclusive bot for Donut Hole server.',
                          case_insensitive=True, )
 
         self.authorized_guilds = authorized_guilds
         self.intros = intros
+        self.reacts = reacts
 
         self.add_cog(TextCommands(self))
         self.event(self.on_ready)
@@ -226,12 +228,6 @@ class TextCommands(commands.Cog):
         """
         Plays audio from a url (doesn't pre-download).
         """
-        if ctx.voice_client is None or not ctx.voice_client.is_connected():
-            if ctx.author.voice:
-                await ctx.author.voice.channel.connect()
-            else:
-                return await ctx.send('```You are not connected to a voice channel.```')
-
         async with ctx.typing():
             source = await YTDLSource.create_source(url, loop=self.bot.loop)
             ctx.voice_client.play(source, after=lambda e: print(f'Player error: {e}') if e else None)
@@ -300,6 +296,49 @@ If the command is called without an argument, the bot will respond with the curr
         await ctx.send(f'''```Now Playing: \'{ctx.voice_client.source.title}\'
 duration: [{ctx.voice_client.source.duration}]```''')
 
+    @commands.command(name='react',
+                      aliases=['r'],
+                      case_insensitive=True,
+                      help='Broadcasts a reaction to the voice channel. \
+If the command is called without an argument, it will respond with the list of available arguments.')
+    @debug_log
+    async def react(self, ctx: commands.Context, name: str = None):
+        """
+        Broadcasts a reaction to the voice channel.
+        """
+        if name is None:
+            reacts_names = ''
+            available_emojis = {}
+
+            for react in self.bot.reacts.values():
+                available_emojis.update({react['emoji']: react['name']})
+                reacts_names += '{emoji} [{name}]  - {description}\n' \
+                    .format(emoji=react['emoji'], name=react['name'], description=react['description'])
+
+            bot_message: discord.Message = await ctx.send(f'```Available reactions:\n\n{reacts_names}```')
+            for emoji in available_emojis:
+                await bot_message.add_reaction(emoji)
+
+            await self.__wait_for_reaction(ctx, bot_message, available_emojis)
+        else:
+            found_reaction: Optional[dict] = self.bot.reacts.get(name)
+
+            if found_reaction is None:
+                raise commands.CommandError('There is no such name for the reaction.')
+
+            filename = os.path.join(
+                os.path.dirname(__file__), 'resources', 'reactions', found_reaction['file'])
+            if filename is None:
+                raise commands.CommandError('There is no file for this reaction name.')
+
+            if not ctx.voice_client.is_playing():
+                source = await create_audio_source(filename)
+                ctx.voice_client.play(
+                    source,
+                    after=lambda e: print(f'Player error: {e}') if e else None)
+            else:
+                print('I can\'t play the reaction, because I am already playing something.')
+
     @leave.before_invoke
     @stop.before_invoke
     @now_playing.before_invoke
@@ -310,7 +349,6 @@ duration: [{ctx.voice_client.source.duration}]```''')
         if ctx.voice_client is None or not ctx.voice_client.is_connected():
             raise commands.CommandError('I\'m not connected to a voice channel.')
 
-    @resume.before_invoke
     @pause.before_invoke
     @volume.before_invoke
     @now_playing.before_invoke
@@ -318,6 +356,38 @@ duration: [{ctx.voice_client.source.duration}]```''')
     async def __ensure_playing(self, ctx: commands.Context):
         if ctx.voice_client is None or not ctx.voice_client.is_playing():
             raise commands.CommandError('I\'m not playing anything.')
+
+    @play.before_invoke
+    @react.before_invoke
+    async def __auto_join_to_voice(self, ctx: commands.Context):
+        if ctx.voice_client is None or not ctx.voice_client.is_connected():
+            if ctx.author.voice:
+                await ctx.author.voice.channel.connect()
+            else:
+                raise commands.CommandError('You are not connected to a voice channel.')
+
+    @debug_log
+    async def __wait_for_reaction(self, ctx: commands.Context, message: discord.Message, available_emojis: dict):
+        """
+        Adds reaction that, when clicked, will invoke the corresponding 'react' command.
+        After a 60 second timeout, the reaction will be removed.
+        """
+
+        def check(reaction: discord.Reaction, user: discord.User) -> bool:
+            return not user.bot \
+                   and str(reaction) in available_emojis.keys() \
+                   and reaction.message.id == message.id
+
+        try:
+            reactions: tuple = await self.bot.wait_for("reaction_add", check=check, timeout=60)
+
+            reaction_name = available_emojis.get(reactions[0].emoji)
+            await self.react(ctx, reaction_name)
+            await message.clear_reactions()
+        except asyncio.exceptions.TimeoutError:
+            await message.clear_reactions()
+        except discord.NotFound:
+            pass
 
 
 def create_intros(env_name: str) -> Dict[str, dict]:
@@ -332,6 +402,18 @@ def create_intros(env_name: str) -> Dict[str, dict]:
     return result
 
 
+def create_reacts(env_name: str) -> Dict[str, dict]:
+    result: Dict[str, dict] = {}
+
+    env_value: Optional[str] = os.getenv(env_name)
+
+    if env_value is not None:
+        for react in json.loads(env_value):
+            result.update({react['name']: react})
+
+    return result
+
+
 if __name__ == '__main__':
     load_dotenv()
 
@@ -339,6 +421,7 @@ if __name__ == '__main__':
     __AUTHORIZED_GUILDS: Optional[List[str]] = os.getenv('AUTHORIZED_GUILDS')
     __DEBUG_ENABLED: Optional[bool] = os.getenv('DEBUG_ENABLED')
     __INTROS: Dict[str, dict] = create_intros('INTROS')
+    __REACTS: Dict[str, dict] = create_reacts('REACTS')
 
     # According to the discord.py docs (https://discordpy.readthedocs.io/en/latest/api.html#discord.opus.load_opus)
     # you should not need it on a windows environment,
@@ -347,4 +430,4 @@ if __name__ == '__main__':
     if os.name == 'nt' and discord.opus.is_loaded():
         discord.opus.load_opus('libopus.so')
 
-    homer = Homer(__TOKEN, __AUTHORIZED_GUILDS, __INTROS)
+    homer = Homer(__TOKEN, __AUTHORIZED_GUILDS, __INTROS, __REACTS)
