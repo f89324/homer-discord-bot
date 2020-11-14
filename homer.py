@@ -29,29 +29,51 @@ def debug_log(fn):
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
-    def __init__(self, source, data, volume=0.5):
+    YTDL_OPTIONS = {
+        'format': 'bestaudio/best',
+        'extractaudio': True,
+        'audioformat': 'mp3',
+        'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+        'restrictfilenames': True,
+        'noplaylist': True,
+        'nocheckcertificate': True,
+        'ignoreerrors': False,
+        'logtostderr': False,
+        'quiet': True,
+        'no_warnings': True,
+        'default_search': 'auto',
+        'source_address': '0.0.0.0',
+    }
+    FFMPEG_OPTIONS = {
+        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+        'options': '-vn'
+    }
+
+    ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
+
+    def __init__(self, source, data: dict, volume: float = 0.5):
         super().__init__(source, volume)
 
         self.title = data.get('title')
         self.url = data.get('url')
-        self.duration = data.get('duration')  # Length of the video in seconds
+        self.duration = datetime.timedelta(seconds=int(data.get('duration')))
 
     @classmethod
-    async def from_url(cls, url: str, loop=None):
+    async def create_source(cls, url: str, loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
+        data = await loop.run_in_executor(None, lambda: cls.ytdl.extract_info(url, download=False))
 
-        return cls(await create_audio_source(data['url']), data=data)
+        return cls(create_audio_source(data['url'], ffmpeg_options=cls.FFMPEG_OPTIONS), data)
 
 
 @debug_log
-async def create_audio_source(source: str, volume: float = 0.5) -> discord.AudioSource:
-    ffmpeg_options = {
+async def create_audio_source(source: str, ffmpeg_options: dict = None, volume: float = 0.5) -> discord.AudioSource:
+    options = ffmpeg_options or {
         'options': '-vn'
     }
 
     return discord.PCMVolumeTransformer(
-        discord.FFmpegPCMAudio(source, **ffmpeg_options), volume)
+        discord.FFmpegPCMAudio(source, **options), volume)
 
 
 class Homer(commands.Bot):
@@ -127,8 +149,9 @@ class Homer(commands.Bot):
             filename: Optional[str] = await self.__get_intro_for_member(member_id)
 
             if filename is not None:
-                audio_source = await create_audio_source(filename)
-                vc.play(audio_source, after=lambda e: print(f'Player error: {e}') if e else None)
+                vc.play(
+                    await create_audio_source(filename),
+                    after=lambda e: print(f'Player error: {e}') if e else None)
         else:
             print('I can\'t play intro, because I am already playing something.')
 
@@ -136,7 +159,7 @@ class Homer(commands.Bot):
         intro: Optional[dict] = self.intros.get(member_id)
 
         if intro is not None:
-            return os.path.join(os.path.dirname(__file__), 'resources', intro['file'])
+            return os.path.join(os.path.dirname(__file__), 'resources', 'intro', intro['file'])
         else:
             print(f'A member with id [{member_id}] does not have an intro.')
             return None
@@ -210,8 +233,8 @@ class TextCommands(commands.Cog):
                 return await ctx.send('```You are not connected to a voice channel.```')
 
         async with ctx.typing():
-            audio_from_url = await YTDLSource.from_url(url, loop=self.bot.loop)
-            ctx.voice_client.play(audio_from_url, after=lambda e: print(f'Player error: {e}') if e else None)
+            source = await YTDLSource.create_source(url, loop=self.bot.loop)
+            ctx.voice_client.play(source, after=lambda e: print(f'Player error: {e}') if e else None)
             await self.now_playing(ctx)
 
     @commands.command(name='stop',
@@ -275,7 +298,7 @@ If the command is called without an argument, the bot will respond with the curr
         Display information about the currently playing song.
         """
         await ctx.send(f'''```Now Playing: \'{ctx.voice_client.source.title}\'
-duration: [{datetime.timedelta(seconds=ctx.voice_client.source.duration)}]```''')
+duration: [{ctx.voice_client.source.duration}]```''')
 
     @leave.before_invoke
     @stop.before_invoke
@@ -316,23 +339,6 @@ if __name__ == '__main__':
     __AUTHORIZED_GUILDS: Optional[List[str]] = os.getenv('AUTHORIZED_GUILDS')
     __DEBUG_ENABLED: Optional[bool] = os.getenv('DEBUG_ENABLED')
     __INTROS: Dict[str, dict] = create_intros('INTROS')
-
-    __YTDL_OPTIONS = {
-        'format': 'bestaudio/best',
-        'extractaudio': True,
-        'audioformat': 'mp3',
-        'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
-        'restrictfilenames': True,
-        'noplaylist': True,
-        'nocheckcertificate': True,
-        'ignoreerrors': False,
-        'logtostderr': False,
-        'quiet': True,
-        'no_warnings': True,
-        'default_search': 'auto',
-        'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
-    }
-    ytdl = youtube_dl.YoutubeDL(__YTDL_OPTIONS)
 
     # According to the discord.py docs (https://discordpy.readthedocs.io/en/latest/api.html#discord.opus.load_opus)
     # you should not need it on a windows environment,
